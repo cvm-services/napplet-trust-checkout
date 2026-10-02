@@ -16,7 +16,7 @@ export default defineConfig({
     nip5aManifest({
       nappletType: 'trust-check',
       artifactMode: 'single-file',
-      requires: ['storage'],
+      requires: ['storage', 'wallet'],
     }),
   ],
 });

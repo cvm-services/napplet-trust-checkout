@@ -219,6 +219,47 @@ async function main(): Promise<void> {
     $('#identity').textContent = 'identity NAP: absent (optional)';
   }
 
+  // ── NAP-WALLET (proposed domain, feature-detected) ──────────────────────────
+  // The checkout needs ONE bit — "can this basket be paid?" — never the balance,
+  // never an address, never a signature. The shell compares against a balance it
+  // holds privately and answers yes/no. A shell that answers with anything else
+  // is a bug we want to SEE, so the response is shape-checked and printed.
+  const walletApi = (napWin.napplet && 'wallet' in napWin.napplet)
+    ? (napWin.napplet.wallet as {
+        canAfford?: (r: { amountSats: number }) => Promise<Record<string, unknown>>;
+      })
+    : undefined;
+
+  const askAffordability = async (): Promise<void> => {
+    const el = $('#afford-res');
+    const amountSats = Number(orderContext().amount);
+    if (!walletApi || typeof walletApi.canAfford !== 'function') {
+      el.textContent = 'wallet NAP: absent — affordability unknown. The verdict does not depend on it.';
+      return;
+    }
+    el.textContent = `asking the shell whether ${amountSats.toLocaleString('en-US')} sats is affordable…`;
+    try {
+      const r = (await walletApi.canAfford({ amountSats })) ?? {};
+      const keys = Object.keys(r);
+      const extra = keys.filter((k) => k !== 'affordable' && k !== 'error');
+      if (typeof r.error === 'string') {
+        el.textContent = `wallet NAP: refused by the shell (${r.error}) — affordability unknown, no balance sent.`;
+      } else {
+        el.textContent = `wallet NAP: affordable = ${r.affordable === true ? 'yes' : 'no'} `
+          + `· response keys [${keys.join(', ')}]`
+          + `· methods exposed [${Object.keys(walletApi).join(', ')}]`
+          + (extra.length ? ` ⚠ extra fields leaked: ${extra.join(', ')}` : ' · no balance transmitted');
+      }
+    } catch (e) {
+      el.textContent = `wallet NAP: call failed (${e instanceof Error ? e.message : String(e)}) — nothing assumed.`;
+    }
+    void snapshot('affordability-asked');
+  };
+
+  $('#afford').addEventListener('click', () => void askAffordability());
+  // Called at boot too, so an automated run captures the envelope without a click.
+  void askAffordability();
+
   $('#honest').addEventListener('click', honestClaim);
   $('#impostor').addEventListener('click', impostorClaim);
   $('#late').addEventListener('click', lateClaim);
