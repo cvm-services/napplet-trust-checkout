@@ -120,12 +120,33 @@ function renderVerdict(res: VerifyResult, proof: TrustProof, selfClaim: string):
   void snapshot(ok ? 'verified' : 'refused');
 }
 
+/**
+ * Best-effort telemetry: a snapshot is a nicety, so it must NEVER be able to
+ * break boot or a verdict. A runtime can legitimately provide a partial storage
+ * domain (the conformance harness injects one that lacks `setItem`), and calling
+ * into it unguarded threw `storage.setItem is not a function` — which escalated
+ * into a boot error and failed `boot/no-boot-error` + `boot/installs-global`.
+ * Now: feature-detect the METHOD, not just the domain, and never let a write
+ * failure escape.
+ */
 async function snapshot(outcome: string): Promise<void> {
-  if (!napWin.napplet || !('storage' in napWin.napplet)) return;
-  snapshots += 1;
-  await storage.setItem('last-verdict', JSON.stringify({ pin: pin.contentHash, outcome, at: Date.now() }));
-  await storage.setItem('snapshots', String(snapshots));
-  $('#store').textContent = `storage NAP: wrote ${snapshots} snapshot(s)`;
+  const domain = napWin.napplet && (napWin.napplet.storage as
+    { setItem?: (k: string, v: string) => Promise<unknown> } | undefined);
+  if (!domain || typeof domain.setItem !== 'function') {
+    const el = document.querySelector('#store');
+    if (el) el.textContent = 'storage NAP: present but lacks setItem — running degraded';
+    return;
+  }
+  try {
+    snapshots += 1;
+    await domain.setItem('last-verdict', JSON.stringify({ pin: pin.contentHash, outcome, at: Date.now() }));
+    await domain.setItem('snapshots', String(snapshots));
+    const el = document.querySelector('#store');
+    if (el) el.textContent = `storage NAP: wrote ${snapshots} snapshot(s)`;
+  } catch {
+    const el = document.querySelector('#store');
+    if (el) el.textContent = 'storage NAP: write failed — running degraded, verdict unaffected';
+  }
 }
 
 /** An honest claim: a member drawn from the pinned set proves membership. */
