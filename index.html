@@ -23,6 +23,13 @@
         <button id="late" type="button">Simulate a late claim</button>
       </section>
 
+      <!-- the money leg: a PAID CVM call the shell settles on the user's behalf -->
+      <section class="actions">
+        <button id="gateway" type="button">Order via the card-rail gateway (paid)</button>
+      </section>
+
+      <section id="gateway-res" class="verdict" style="white-space:pre-line"></section>
+
       <!-- NAP-CVM: the wallet is reached as an MCP tool through the shell. -->
       <section class="actions">
         <button id="cvm" type="button">Ask the wallet over ContextVM (NAP-CVM)</button>

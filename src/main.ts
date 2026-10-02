@@ -330,6 +330,67 @@ async function main(): Promise<void> {
   $('#cvm').addEventListener('click', () => void askOverCvm());
   void askOverCvm();   // boot-time, so an automated run captures it without a click
 
+  // ── the money leg: a PAID CVM call, settled by the shell ────────────────────
+  // The gateway is announced with `paymentRequired`, which is what makes the shell
+  // apply the payment posture. The app asks for `payment: 'prompt'`; the SHELL then
+  // asks the user, and the amount comes from the gateway's own quote — the app
+  // never names a price. Asking with 'deny' first shows the refusal, unpaid.
+  const runGatewayFlow = async (): Promise<void> => {
+    const el = $('#gateway-res');
+    if (!hasCvm) { el.textContent = 'CVM NAP: absent — cannot reach the gateway.'; return; }
+    const out: string[] = [];
+    const orderId = orderContext().orderId;
+    const amountSats = Number(orderContext().amount);
+    try {
+      const disc = (await cvm.discover({ search: 'gateway', limit: 5 })) as unknown;
+      const servers = (Array.isArray(disc) ? disc
+        : ((disc as { servers?: unknown[] })?.servers ?? [])) as Array<{
+          name?: string; pubkey: string; paymentRequired?: boolean;
+        }>;
+      const gw = servers.find((s) => s.paymentRequired === true);
+      if (!gw) { el.textContent = `no paymentRequired CVM server found among ${servers.length}`; return; }
+      out.push(`gateway: ${gw.name ?? gw.pubkey.slice(0, 12)} · paymentRequired=true`);
+
+      const listed = (await cvm.listTools(gw)) as unknown as { tools?: Array<{ name: string }> };
+      out.push(`tools/list → [${(listed?.tools ?? []).map((t) => t.name).join(', ')}]`);
+
+      const q = (await cvm.callTool(gw, 'gateway_quote', { orderId, amountSats })) as unknown as {
+        content?: Array<{ text?: string }>;
+      };
+      out.push(`gateway_quote → "${q?.content?.[0]?.text ?? '?'}"`);
+
+      const args = { orderId, amountSats, ringProof: 'ring-proof:' + pin.contentHash.slice(0, 16) };
+
+      // 1) deny — expect the SHELL to refuse before any payment is attempted
+      try {
+        const r = (await cvm.callTool(gw, 'gateway_submit_order', args, { payment: 'deny' })) as unknown;
+        out.push(`submit payment=deny → ⚠ ACCEPTED (unexpected, no payment made): ${JSON.stringify(r).slice(0, 110)}`);
+      } catch (e) {
+        out.push(`submit payment=deny → refused: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      // 2) prompt — the consent moment: the shell asks, the user decides
+      try {
+        const r = (await cvm.callTool(gw, 'gateway_submit_order', args, { payment: 'prompt' })) as unknown as {
+          content?: Array<{ text?: string }>;
+        };
+        out.push(`submit payment=prompt → "${r?.content?.[0]?.text ?? JSON.stringify(r)}"`);
+      } catch (e) {
+        out.push(`submit payment=prompt → settled? ${e instanceof Error ? e.message : String(e)}`);
+      }
+    } catch (e) {
+      out.push(`gateway error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    el.textContent = out.join('\n');
+    void snapshot('gateway-asked');
+  };
+
+  $('#gateway').addEventListener('click', () => void runGatewayFlow());
+  // Host launch hint (`?flow=gateway`): run the paid flow unattended.
+  if ((napWin as unknown as { __nappletBoot?: { gateway?: boolean } }).__nappletBoot?.gateway) {
+    void runGatewayFlow();
+  }
+
   $('#honest').addEventListener('click', honestClaim);
   $('#impostor').addEventListener('click', impostorClaim);
   $('#late').addEventListener('click', lateClaim);
