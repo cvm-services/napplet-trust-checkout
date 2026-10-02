@@ -15,7 +15,7 @@
  * Set members are generated locally (demo fixtures, no secrets stored): the point
  * is the boundary, not the roster.
  */
-import { storage, identity, themeGet, themeOnChanged } from '@napplet/sdk';
+import { storage, identity, themeGet, themeOnChanged, cvm } from '@napplet/sdk';
 import { generateKeyPair, type KeyPair } from './trust-ring/lsag.ts';
 import {
   pinTrustSet, toHex, type TrustSet, type TrustMember, type TrustSetPin,
@@ -259,6 +259,55 @@ async function main(): Promise<void> {
   $('#afford').addEventListener('click', () => void askAffordability());
   // Called at boot too, so an automated run captures the envelope without a click.
   void askAffordability();
+
+  // ── NAP-CVM (Sandwich's recommendation) ─────────────────────────────────────
+  // Reach the wallet as an MCP tool *through the shell*. The shell owns the
+  // transport, the JSON-RPC correlation, policy, and the payment posture; the
+  // napplet supplies only a server identity and the operation it wants. No new
+  // NAP is needed — and the capability arrives as a named tool, which is
+  // something a host can allow-list per name.
+  const hasCvm = Boolean(napWin.napplet && 'cvm' in napWin.napplet);
+
+  const askOverCvm = async (): Promise<void> => {
+    const el = $('#cvm-res');
+    const amountSats = Number(orderContext().amount);
+    if (!hasCvm) { el.textContent = 'CVM NAP: absent — no ContextVM bridge in this shell.'; return; }
+    const out: string[] = [];
+    try {
+      const disc = (await cvm.discover({ search: 'wallet', limit: 5 })) as unknown;
+      const servers = (Array.isArray(disc) ? disc
+        : ((disc as { servers?: unknown[] })?.servers ?? [])) as Array<{
+          name?: string; pubkey: string; paymentRequired?: boolean;
+        }>;
+      out.push(`cvm.discover → ${servers.length} server(s): ` + servers
+        .map((s) => `${s.name ?? '(unnamed)'}${s.paymentRequired ? ' · paymentRequired' : ''}`).join(', '));
+      const server = servers[0];
+      if (!server) { el.textContent = out.join('\n'); return; }
+
+      const listed = (await cvm.listTools(server)) as unknown as { tools?: Array<{ name: string }> };
+      out.push(`tools/list → [${(listed?.tools ?? []).map((t) => t.name).join(', ')}]`);
+
+      const r = (await cvm.callTool(server, 'wallet_can_afford', { amountSats })) as unknown as {
+        content?: Array<{ text?: string }>;
+      };
+      out.push(`tools/call wallet_can_afford → "${r?.content?.[0]?.text ?? JSON.stringify(r)}"`);
+
+      // Expected to be refused by the host. If it is ever allowed, say so loudly.
+      try {
+        const b = (await cvm.callTool(server, 'wallet_balance', {})) as unknown;
+        out.push(`tools/call wallet_balance → ⚠ ALLOWED (unexpected): ${JSON.stringify(b).slice(0, 120)}`);
+      } catch (e) {
+        out.push(`tools/call wallet_balance → refused: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    } catch (e) {
+      out.push(`cvm error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    el.textContent = out.join('\n');
+    void snapshot('cvm-asked');
+  };
+
+  $('#cvm').addEventListener('click', () => void askOverCvm());
+  void askOverCvm();   // boot-time, so an automated run captures it without a click
 
   $('#honest').addEventListener('click', honestClaim);
   $('#impostor').addEventListener('click', impostorClaim);

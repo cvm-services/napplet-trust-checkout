@@ -23,6 +23,13 @@
         <button id="late" type="button">Simulate a late claim</button>
       </section>
 
+      <!-- NAP-CVM: the wallet is reached as an MCP tool through the shell. -->
+      <section class="actions">
+        <button id="cvm" type="button">Ask the wallet over ContextVM (NAP-CVM)</button>
+      </section>
+
+      <section id="cvm-res" class="verdict" style="white-space:pre-line"></section>
+
       <!-- NAP-WALLET (proposed): the checkout needs ONE bit — can this basket be
            paid? — never the balance. The shell answers; the number stays home. -->
       <section class="actions">

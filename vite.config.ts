@@ -11,12 +11,14 @@ export default defineConfig({
     // Produce one self-contained `/index.html` for NIP-5D `srcdoc` loading,
     // then content-address it with the NIP-5A tag/hash schema.
     //
-    // requires: only `storage` — the verdict is local computation, and every
-    // other domain (identity, theme) is optional and feature-detected.
+    // requires: `storage` always; `wallet` (the invented predicate) and `cvm`
+    // (Sandwich's sanctioned route) are declared too. Both are feature-detected
+    // and degrade cleanly, so declaring them states intent rather than a hard
+    // dependency — the manifest has no way to say "sensitive but optional".
     nip5aManifest({
       nappletType: 'trust-check',
       artifactMode: 'single-file',
-      requires: ['storage', 'wallet'],
+      requires: ['storage', 'wallet', 'cvm'],
     }),
   ],
 });
