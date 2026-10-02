@@ -1,0 +1,50 @@
+/* Compact napplet surface: 13px type, 4/8/12px spacing, 28px controls, no page
+   margins, no max-width column — and it must work from 200x160 up to full screen. */
+:root {
+  --bg: #0f1115;
+  --fg: #e6e8ee;
+  --accent: #6ee7a0;
+  --panel: color-mix(in srgb, var(--fg) 6%, transparent);
+  --line: color-mix(in srgb, var(--fg) 16%, transparent);
+  --err: #ff8080;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, sans-serif; }
+.app { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--panel); }
+.h { font-weight: 650; margin-bottom: 6px; }
+.kv { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.kv > span:first-child { opacity: .72; }
+.mono { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; }
+.s { font-size: 12px; opacity: .78; }
+.note { font-size: 12px; opacity: .78; margin: 6px 0; }
+.row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line); }
+.row .grow { flex: 1; min-width: 0; }
+.row .t { font-weight: 600; }
+.list { margin-top: 4px; }
+.pill { font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.ok { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+button {
+  min-height: 28px; padding: 0 12px; font: inherit; cursor: pointer;
+  color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 8px;
+}
+button.primary { border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.verdict { display: flex; flex-direction: column; gap: 8px; }
+.banner { border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.banner.ok { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.banner.err { border-color: color-mix(in srgb, var(--err) 55%, transparent); }
+.banner.err b { color: var(--err); }
+.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.checks li { display: flex; gap: 6px; font-size: 12px; }
+.mk { color: var(--accent); }
+.mk.no { color: var(--err); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 11px; opacity: .8; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+
+/* Tiered layout: the frame can be any size and is resized live. */
+@media (max-width: 479px) { .app { padding: 6px; gap: 6px; } .kv { font-size: 12px; } }
+@media (min-width: 900px) { .app { padding: 12px; gap: 12px; } .card { padding: 12px; } }
+@media (max-height: 420px) { .list { max-height: 96px; overflow: auto; } }

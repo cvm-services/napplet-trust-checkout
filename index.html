@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trusted vendor checkout</title>
+  </head>
+  <body>
+    <!-- No masthead: the runtime shows the napplet's name; this is working surface. -->
+    <main id="app" class="app">
+      <section class="card">
+        <div class="h">Order</div>
+        <div class="kv"><span>Basket</span><span>2 × Margherita</span></div>
+        <div class="kv"><span>Total</span><span class="mono">27,900 sats</span></div>
+        <div class="kv"><span>Delivery</span><span>Kreuzberg · 10999</span></div>
+      </section>
+
+      <section class="card" id="set"></section>
+
+      <section class="actions">
+        <button id="honest" type="button" class="primary">Open the order — first valid proof wins</button>
+        <button id="impostor" type="button">Simulate an impostor claim</button>
+        <button id="late" type="button">Simulate a late claim</button>
+      </section>
+
+      <section id="verdict" class="verdict"></section>
+
+      <footer class="chips">
+        <span id="identity" class="chip">identity: …</span>
+        <span id="store" class="chip">storage: …</span>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

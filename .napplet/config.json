@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "sourceDir": ".",
+  "relays": [
+    "wss://relay2.orangesync.tech",
+    "wss://relay.damus.io"
+  ],
+  "blossomServers": [
+    "https://blossom2.orangesync.tech",
+    "https://blossom.primal.net"
+  ],
+  "defaultTarget": "named",
+  "named": [
+    "trust-check"
+  ],
+  "discover": {
+    "enabled": true,
+    "roots": [
+      "."
+    ]
+  },
+  "signing": {
+    "mode": "interactive"
+  },
+  "conformance": {
+    "command": "napplet-conformance"
+  },
+  "paja": {
+    "command": "kehto"
+  },
+  "metadata": {
+    "name": "trust-check",
+    "title": "Trusted vendor checkout",
+    "description": "Ring-signature vendor vetting gating a checkout, as a NIP-5D napplet",
+    "archetypes": []
+  }
+}
